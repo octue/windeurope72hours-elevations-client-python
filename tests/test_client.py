@@ -3,14 +3,12 @@ from unittest.mock import patch
 
 from h3 import H3CellError
 
-from elevations_client.client import (
-    get_coordinate_elevations,
-    get_h3_cell_elevations,
-    get_h3_cell_elevations_in_polygon,
-)
+from elevations_client import get_coordinate_elevations, get_h3_cell_elevations, get_h3_cell_elevations_in_polygon
 
 
 class TestClient(unittest.TestCase):
+    """Test the python client against the live API."""
+
     def test_error_raised_if_invalid_h3_cells_given(self):
         """Test that an error is raised and no requests are made to the API if any of the cells are invalid."""
         with patch("elevations_client.client.requests.post") as mock_post:
