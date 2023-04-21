@@ -1,4 +1,7 @@
 import unittest
+from unittest.mock import patch
+
+from h3 import H3CellError
 
 from elevations_client.client import (
     get_coordinate_elevations,
@@ -8,6 +11,14 @@ from elevations_client.client import (
 
 
 class TestClient(unittest.TestCase):
+    def test_error_raised_if_invalid_h3_cells_given(self):
+        """Test that an error is raised and no requests are made to the API if any of the cells are invalid."""
+        with patch("elevations_client.client.requests.post") as mock_post:
+            with self.assertRaises(H3CellError):
+                get_h3_cell_elevations([630949280935159295, 1])
+
+        mock_post.assert_not_called()
+
     def test_get_h3_cell_elevations(self):
         """Test that elevations can be requested for H3 cells."""
         elevations, later, estimated_wait_time = get_h3_cell_elevations([630949280935159295, 630949280220393983])

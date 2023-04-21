@@ -1,6 +1,8 @@
 import json
 
 import requests
+from h3 import H3CellError
+from h3.api.basic_int import h3_is_valid
 
 
 API_URL = "https://europe-west1-windeurope72-private.cloudfunctions.net/elevations-api"
@@ -15,6 +17,10 @@ def get_h3_cell_elevations(cells):
     :param iter(int) cells: the integer indexes of the H3 cells to get the elevations of
     :return dict(int, float), list(int)|None, int|None: cell indexes mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time in seconds
     """
+    for cell in cells:
+        if not h3_is_valid(cell):
+            raise H3CellError(f"{cell} is not a valid H3 cell.")
+
     response = requests.post(API_URL, json={"h3_cells": list(cells)}).json()
     elevations = {int(index): elevation for index, elevation in response["data"]["elevations"].items()}
     elevations_to_get_later = response["data"].get("later")
