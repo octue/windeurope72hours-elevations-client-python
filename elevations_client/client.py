@@ -4,6 +4,7 @@ import requests
 
 
 API_URL = "https://europe-west1-windeurope72-private.cloudfunctions.net/elevations-api"
+DEFAULT_RESOLUTION = 12
 
 
 def get_h3_cell_elevations(cells):
@@ -12,7 +13,7 @@ def get_h3_cell_elevations(cells):
     indexes to come back for later along with an estimated wait time.
 
     :param iter(int) cells: the integer indexes of the H3 cells to get the elevations of
-    :return dict(int, float), list(int)|None, int|None: cell indexes mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time
+    :return dict(int, float), list(int)|None, int|None: cell indexes mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time in seconds
     """
     response = requests.post(API_URL, json={"h3_cells": list(cells)}).json()
     elevations = {int(index): elevation for index, elevation in response["data"]["elevations"].items()}
@@ -21,12 +22,12 @@ def get_h3_cell_elevations(cells):
     return elevations, elevations_to_get_later, estimated_wait_time
 
 
-def get_coordinate_elevations(coordinates, resolution=12):
+def get_coordinate_elevations(coordinates, resolution=DEFAULT_RESOLUTION):
     """Get the elevations of the given latitude/longitude coordinates.
 
     :param iter(iter(float, float)) coordinates: the latitude/longitude pairs to get the elevations of (in decimal degrees)
     :param int resolution: the H3 resolution level to get the elevations at
-    :return dict(tuple(float, float)), float), list(list(float, float))|None, int|None: latitude/longitude coordinates mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time
+    :return dict(tuple(float, float)), float), list(list(float, float))|None, int|None: latitude/longitude coordinates mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time in seconds
     """
     response = requests.post(API_URL, json={"coordinates": list(coordinates), "resolution": resolution}).json()
 
@@ -37,3 +38,18 @@ def get_coordinate_elevations(coordinates, resolution=12):
     later = response["data"].get("later")
     estimated_wait_time = response["data"].get("estimated_wait_time")
     return elevations, later, estimated_wait_time
+
+
+def get_h3_cell_elevations_in_polygon(polygon, resolution=DEFAULT_RESOLUTION):
+    """Get the elevations of the H3 cells at the given resolution whose centrepoints are within the polygon defined by
+    the latitude/longitude coordinate pairs.
+
+    :param iter(iter(float, float)) polygon: the latitude/longitude coordinates that define the points of a polygon (in decimal degrees)
+    :param int resolution: the resolution of the cells to get within the polygon
+    :return dict(int, float), list(int)|None, int|None: cell indexes mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time in seconds
+    """
+    response = requests.post(API_URL, json={"polygon": list(polygon), "resolution": resolution}).json()
+    elevations = {int(index): elevation for index, elevation in response["data"]["elevations"].items()}
+    elevations_to_get_later = response["data"].get("later")
+    estimated_wait_time = response["data"].get("estimated_wait_time")
+    return elevations, elevations_to_get_later, estimated_wait_time
