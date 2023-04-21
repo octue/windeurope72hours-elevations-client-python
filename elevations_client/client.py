@@ -1,3 +1,5 @@
+import json
+
 import requests
 
 
@@ -17,3 +19,21 @@ def get_h3_cell_elevations(cells):
     elevations_to_get_later = response["data"].get("later")
     estimated_wait_time = response["data"].get("estimated_wait_time")
     return elevations, elevations_to_get_later, estimated_wait_time
+
+
+def get_coordinate_elevations(coordinates, resolution=12):
+    """Get the elevations of the given latitude/longitude coordinates.
+
+    :param iter(iter(float, float)) coordinates: the latitude/longitude pairs to get the elevations of (in decimal degrees)
+    :param int resolution: the H3 resolution level to get the elevations at
+    :return dict(tuple(float, float)), float), list(list(float, float))|None, int|None: latitude/longitude coordinates mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time
+    """
+    response = requests.post(API_URL, json={"coordinates": list(coordinates), "resolution": resolution}).json()
+
+    elevations = {
+        tuple(json.loads(coordinate)): elevation for coordinate, elevation in response["data"]["elevations"].items()
+    }
+
+    later = response["data"].get("later")
+    estimated_wait_time = response["data"].get("estimated_wait_time")
+    return elevations, later, estimated_wait_time
