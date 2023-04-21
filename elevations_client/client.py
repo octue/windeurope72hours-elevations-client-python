@@ -17,6 +17,9 @@ def get_h3_cell_elevations(cells):
     :param iter(int) cells: the integer indexes of the H3 cells to get the elevations of
     :return dict(int, float), list(int)|None, int|None: cell indexes mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time in seconds
     """
+    if len(cells) == 0:
+        raise ValueError("The number of cells cannot be zero.")
+
     for cell in cells:
         if not h3_is_valid(cell):
             raise H3CellError(f"{cell} is not a valid H3 cell.")
@@ -35,6 +38,7 @@ def get_coordinate_elevations(coordinates, resolution=DEFAULT_RESOLUTION):
     :param int resolution: the H3 resolution level to get the elevations at
     :return dict(tuple(float, float)), float), list(list(float, float))|None, int|None: latitude/longitude coordinates mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time in seconds
     """
+    _validate_coordinates(coordinates)
     response = _get_elevations_from_api({"coordinates": list(coordinates), "resolution": resolution})
 
     elevations = {
@@ -54,7 +58,10 @@ def get_h3_cell_elevations_in_polygon(polygon, resolution=DEFAULT_RESOLUTION):
     :param int resolution: the resolution of the cells to get within the polygon
     :return dict(int, float), list(int)|None, int|None: cell indexes mapped to their elevations in meters, any cell indexes to request again after the wait time, and the estimated wait time in seconds
     """
-    response = _get_elevations_from_api({"polygon": list(polygon), "resolution": resolution})
+    polygon = list(polygon)
+    _validate_coordinates(polygon, "polygon coordinates")
+
+    response = _get_elevations_from_api({"polygon": polygon, "resolution": resolution})
     elevations = {int(index): elevation for index, elevation in response["data"]["elevations"].items()}
     elevations_to_get_later = response["data"].get("later")
     estimated_wait_time = response["data"].get("estimated_wait_time")
@@ -74,3 +81,15 @@ def _get_elevations_from_api(data):
         raise ValueError(response.text)
 
     return response.json()
+
+
+def _validate_coordinates(coordinates, coordinates_name="coordinates"):
+    """Check that the given coordinates are not empty or invalid.
+
+    :param list(list(float, float)) coordinates: the coordinates to validate
+    :param str coordinates_name: the name to use for the coordinates in the error message
+    :raise ValueError: if the coordinates are invalid
+    :return None:
+    """
+    if len(coordinates) == 0 or any(len(coordinate) != 2 for coordinate in coordinates):
+        raise ValueError(f"The {coordinates_name} must be an iterable of iterables of length 2 and cannot be empty.")
